@@ -1,3 +1,3 @@
-"[D[3~Hello, I am Mahidi Hasan Chowdhury
+Hello, I am Mahidi Hasan Chowdhury
 This line is only in feature-learning branch nowAdding Fetch and Delete operational code blocks here.
 Adding Update and Edit operational code blocks here.
