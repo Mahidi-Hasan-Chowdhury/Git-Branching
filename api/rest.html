@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simple 5-Method API Demo</title>
+    <style>
+        /* Minimal styling just to keep it readable */
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f9f9f9; }
+        .box { background: white; padding: 20px; border: 1px solid #ccc; margin-bottom: 20px; border-radius: 5px; }
+        .user-card { background: #eee; padding: 10px; margin: 10px 0; border-radius: 3px; }
+        button { margin: 5px 5px 5px 0; padding: 5px 10px; cursor: pointer; }
+        input { padding: 5px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Simple User Management (All 5 Methods)</h1>
+
+    <div class="box">
+        <h3>Create New User (POST)</h3>
+        <form id="createUserForm">
+            <input type="text" id="newName" placeholder="Enter Name" required>
+            <input type="email" id="newEmail" placeholder="Enter Email" required>
+            <button type="submit">Create User</button>
+        </form>
+    </div>
+
+    <div class="box">
+        <h3>User Directory</h3>
+        <div id="userContainer">Loading users from server...</div>
+    </div>
+
+    <script>
+        const userContainer = document.getElementById('userContainer');
+        const createUserForm = document.getElementById('createUserForm');
+        
+        // This is our mock kitchen URL
+        const API_URL = 'https://jsonplaceholder.typicode.com/users';
+        
+        // Our temporary local basket
+        let localUsers = [];
+
+        // ==========================================
+        // 1. GET METHOD - Read and Show Users
+        // ==========================================
+        async function fetchAndShowUsers() {
+            try {
+                const response = await fetch(API_URL, { method: 'GET' });
+                localUsers = await response.json();
+                renderUI();
+            } catch (error) {
+                userContainer.innerHTML = "Error loading users: " + error.message;
+            }
+        }
+
+        // ==========================================
+        // 2. POST METHOD - Create a User
+        // ==========================================
+        createUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Stop page refresh
+            
+            const nameInput = document.getElementById('newName');
+            const emailInput = document.getElementById('newEmail');
+
+            const newUserData = {
+                name: nameInput.value,
+                email: emailInput.value
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newUserData)
+                });
+
+                const savedUser = await response.json();
+                
+                // Add the server's response to the top of our list
+                localUsers.unshift(savedUser);
+                renderUI();
+                createUserForm.reset(); // Clear the input fields
+            } catch (error) {
+                alert("POST Error: " + error.message);
+            }
+        });
+
+        // ==========================================
+        // 3. PUT METHOD - Full Replace a User
+        // ==========================================
+        async function fullReplaceUser(userId) {
+            const replacedData = {
+                name: "REPLACED NAME",
+                email: "replaced@email.com"
+                // Notice we leave out other fields like 'username' or 'phone'. 
+                // PUT will wipe them out completely on the server!
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(replacedData)
+                });
+
+                const updatedUser = await response.json();
+                
+                // Update our local basket with the new replaced data
+                localUsers = localUsers.map(user => user.id === userId ? updatedUser : user);
+                renderUI();
+            } catch (error) {
+                alert("PUT Error: " + error.message);
+            }
+        }
+
+        // ==========================================
+        // 4. PATCH METHOD - Partial Update (Name Only)
+        // ==========================================
+        async function updateNameOnly(userId) {
+            const partialData = {
+                name: "EDITED NAME ONLY" // Leaves the email completely untouched!
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/${userId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(partialData)
+                });
+
+                const updatedUser = await response.json();
+                
+                // Update our local basket with the patched data
+                localUsers = localUsers.map(user => user.id === userId ? updatedUser : user);
+                renderUI();
+            } catch (error) {
+                alert("PATCH Error: " + error.message);
+            }
+        }
+
+        // ==========================================
+        // 5. DELETE METHOD - Remove a User
+        // ==========================================
+        async function deleteUser(userId) {
+            try {
+                const response = await fetch(`${API_URL}/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    // Remove it from our local basket
+                    localUsers = localUsers.filter(user => user.id !== userId);
+                    renderUI();
+                }
+            } catch (error) {
+                alert("DELETE Error: " + error.message);
+            }
+        }
+
+        // ==========================================
+        // UI RENDER FUNCTION - Draws the cards on screen
+        // ==========================================
+        function renderUI() {
+            userContainer.innerHTML = ''; // Clear container
+
+            if (localUsers.length === 0) {
+                userContainer.innerHTML = "No users left.";
+                return;
+            }
+
+            localUsers.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <h4>${user.name}</h4>
+                    <p>Email: ${user.email}</p>
+                    <p><small>ID: ${user.id}</small></p>
+                    
+                    <button onclick="updateNameOnly(${user.id})" style="background:#9b59b6; color:white;">PATCH (Edit Name)</button>
+                    <button onclick="fullReplaceUser(${user.id})" style="background:#f1c40f;">PUT (Replace All)</button>
+                    <button onclick="deleteUser(${user.id})" style="background:#e74c3c; color:white;">DELETE</button>
+                `;
+                userContainer.appendChild(card);
+            });
+        }
+
+        // Run GET automatically when page opens
+        fetchAndShowUsers();
+    </script>
+</body>
+</html>

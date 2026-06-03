@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management System (Full-Cycle API)</title>
+    <style>
+        /* Clean UI styling based on your structure */
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #eef2f3; padding: 20px; margin: 0; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: #2c3e50; margin: 0; }
+        
+        .form-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .form-card h3 { margin-top: 0; color: #34495e; }
+        .form-group { margin-bottom: 15px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        
+        button { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .add-btn { background: #3498db; color: white; width: 100%; font-size: 15px; }
+        .add-btn:hover { background: #2980b9; }
+        .delete-btn { background: #e74c3c; color: white; font-size: 12px; }
+        .delete-btn:hover { background: #c0392b; }
+
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media(min-width: 600px) { .grid { grid-template-columns: 1fr 1fr; } }
+        
+        .user-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #3498db; }
+        .user-info h3 { margin: 0 0 5px 0; color: #2c3e50; }
+        .user-info p { margin: 2px 0; color: #7f8c8d; font-size: 14px; }
+        .status-msg { text-align: center; color: #7f8c8d; font-style: italic; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>User Directory</h1>
+        </header>
+
+        <section class="form-card">
+            <h3>Add New User</h3>
+            <form id="user-form">
+                <div class="form-group">
+                    <input type="text" id="name" placeholder="Full Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email Address" required>
+                </div>
+                <button type="submit" class="add-btn">Add to List (POST)</button>
+            </form>
+        </section>
+
+        <div id="user-container" class="grid">
+            <p class="status-msg">Fetching initial database data from API...</p>
+        </div>
+    </div>
+
+    <script>
+        // DOM Selectors
+        const userContainer = document.getElementById('user-container');
+        const userForm = document.getElementById('user-form');
+        const API_URL = 'https://jsonplaceholder.typicode.com/users';
+
+        // Local state array to hold memory cache
+        let localUsers = [];
+
+        /**
+         * 1. GET METHOD - Initial Application Startup Load
+         */
+        async function init() {
+            try {
+                // Send standard network execution command
+                const response = await fetch(API_URL, { method: 'GET' });
+                if (!response.ok) throw new Error('Server returned an error status loop');
+                
+                // Parse the text body down into JSON array objects
+                localUsers = await response.json();
+                renderUsers();
+            } catch (error) {
+                userContainer.innerHTML = `<p class="status-msg" style="color:red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        /**
+         * 2. POST METHOD - Handle Form Add Submissions
+         */
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Stop standard page refreshing behavior
+
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+
+            // Build payload context structural blueprint
+            const newUserPayload = {
+                name: nameInput.value,
+                email: emailInput.value
+            };
+
+            // Inform layout we are sending data packages
+            userContainer.innerHTML = '<p class="status-msg">Communicating with server... (POST)</p>';
+
+            try {
+                // Execute async post request containing stringified payload configurations
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newUserPayload)
+                });
+
+                if (!response.ok) throw new Error('Server flatly rejected content ingestion parameters');
+
+                // Read incoming processed model body returned from server
+                const savedUserFromServer = await response.json();
+
+                // Append newly stamped database object model to our local array state
+                localUsers.unshift(savedUserFromServer);
+
+                // Re-render UI layer, clean input values out
+                renderUsers();
+                userForm.reset();
+                nameInput.focus();
+
+            } catch (error) {
+                alert("Transaction failed: " + error.message);
+                renderUsers(); // Restore view state on failure instances
+            }
+        });
+
+        /**
+         * 3. DELETE METHOD - Remove Selected Identity Card
+         * @param {number} userId - Targets exact document id reference sequence
+         */
+        window.deleteUser = async function(userId) {
+            // Early prompt warning indicator animation loop equivalent
+            const confirmAction = confirm("Are you sure you want to request server deletion processing?");
+            if (!confirmAction) return;
+
+            try {
+                // Fire exact targeted path resource command method structure parameters
+                const response = await fetch(`${API_URL}/${userId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) throw new Error('Database server side network cleanup failure');
+
+                // If response checks out clean, slice target item away from local tracking array
+                localUsers = localUsers.filter(user => user.id !== userId);
+                
+                // Re-draw current application container grid layout configuration
+                renderUsers();
+
+            } catch (error) {
+                alert("Deletion sequence interrupted: " + error.message);
+            }
+        };
+
+        /**
+         * UI RENDER ROUTINE - Builds interface views strictly map matching local array data
+         */
+        function renderUsers() {
+            userContainer.innerHTML = '';
+
+            if (localUsers.length === 0) {
+                userContainer.innerHTML = '<p class="status-msg">The list is completely empty. Add an application node entry above!</p>';
+                return;
+            }
+
+            localUsers.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <div class="user-info">
+                        <h3>${user.name}</h3>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Database System ID:</strong> ${user.id}</p>
+                    </div>
+                    <button class="delete-btn" onclick="deleteUser(${user.id})">Remove</button>
+                `;
+                userContainer.appendChild(card);
+            });
+        }
+
+        // Initialize execution setup routing loops
+        init();
+    </script>
+</body>
+</html>
