@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rest API Practice</title>
+    <style>
+        .post-card {
+            display: flex;
+            background-color: #f0f0f0;
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px saddlebrown solid
+        }
+    </style>
+</head>
+<body>
+    <h1>REST API Practice</h1>
+    <div>
+        <input type="text" id="postTitle" placeholder="Post Title">
+        <input type="text" id="postBody" placeholder="Post Body">
+        <button id="createPost" onClick="createPost()">Create Post</button>
+    </div>
+    <div id="postsContainer">
+        <h3>Posts</h3>
+        <p>Fetching posts...</p>
+    </div>
+
+    <script>
+        const postContainer = document.getElementById('postsContainer');
+        const API_URL = 'https://jsonplaceholder.typicode.com/posts';
+
+        let localPosts = [];
+        // Fetch and display posts 
+        async function fetchAndDisplayPosts() {
+            try {
+                const response = await fetch(API_URL, {method: 'GET'});
+                const allPosts = await response.json();
+                localPosts = allPosts.slice(0, 10); // Limit to first 10 posts for demo
+                renderPosts();
+            }
+            catch(error) {
+                postContainer.innerHTML = "Error fetching Posts: " + error.message;
+            }
+        }
+
+        async function createPost() {
+            const title = document.getElementById('postTitle').value;
+            const body = document.getElementById('postBody').value;
+            
+            const newPost = {
+                title: title,
+                body: body
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newPost)
+                });
+                const createdPost = await response.json();
+                localPosts.push(createdPost);
+                renderPosts();
+
+                title.value = '';
+                body.value = '';
+            }
+            catch(error) {
+                console.error('Error creating post:', error);
+            }
+        }
+
+        async function putUpdatePost(postId) {
+            const updatedTitle = prompt("Enter new title:");
+            const updatedBody = prompt("Enter new body:");
+            if (!updatedTitle || !updatedBody) return;
+
+            const updatedPost = {
+                title: updatedTitle,
+                body: updatedBody
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/${postId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedPost)
+                });
+                const result = await response.json();
+                localPosts = localPosts.map(post => post.id === postId ? result : post);
+                renderPosts();
+            }
+            catch(error) {
+                console.error('Error updating post:', error);
+            }
+        }
+
+        async function patchUpdatePost(postId) {
+            const updatedTitle = prompt("Enter new title (leave blank to keep unchanged):");
+            const updatedBody = prompt("Enter new body (leave blank to keep unchanged):");
+
+            const updatedData = {};
+            if (updatedTitle) updatedData.title = updatedTitle;
+            if (updatedBody) updatedData.body = updatedBody;
+
+            try {
+                const response = await fetch(`${API_URL}/${postId}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                const result = await response.json();
+                localPosts = localPosts.map(post => post.id === postId ? result : post);
+                renderPosts();
+            }
+            catch(error) {
+                console.error('Error updating post:', error);
+            }
+        }
+
+        async function deletePost(postId) {
+            const confirmDelete = confirm("Do you really want to delete this post?");
+            if (!confirmDelete) return;
+            try {
+                await fetch(`${API_URL}/${postId}`, {
+                    method: 'DELETE'
+                });
+                localPosts = localPosts.filter(post => post.id !== postId);
+                renderPosts();
+            }
+            catch(error) {
+                console.error('Error deleting post:', error);
+            }
+        }
+
+        function renderPosts() {
+            postContainer.innerHTML = '<h3>Posts</h3>';
+            if(localPosts.length === 0) {
+                postContainer.innerHTML = "<p>No posts available.</p>";
+                return;     
+            }
+            localPosts.forEach(post => {
+                const postElement = document.createElement('div');
+                postElement.className = 'post-card';
+                postElement.innerHTML = `
+                    <h4>Post Title:  ${post.title}</h4>
+                    <p>Post Body: ${post.body}</p>
+                    <button onclick="putUpdatePost(${post.id})">Update(Put)</button>
+                    <button onclick="patchUpdatePost(${post.id})">Patch</button>
+                    <button onclick="deletePost(${post.id})">Delete</button>
+                `;
+                postContainer.appendChild(postElement);
+            })
+        }
+
+        fetchAndDisplayPosts();
+    </script>
+</body>
+</html>
